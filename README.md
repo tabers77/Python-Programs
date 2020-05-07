@@ -1,2 +1,2 @@
-# Python-corner-
+# Python-corner
 Improving mini Python Programs 
