@@ -1,2 +1,2 @@
-# Python-corner
-Improving mini Python Programs 
+# Python Corner 
+Solving day to day tasks with Python
