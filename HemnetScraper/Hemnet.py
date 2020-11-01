@@ -120,7 +120,7 @@ def hemnet_generator(sold_age = '6m',area_code = None,num_pages = 3, keyword = N
 
 def dep_filter(df, min_size=40, max_size= 75 , max_price=None,probas= False):
     """
-    Standard function to return general stats about the apartament and return probability
+    Standard function to return general stats about the apartament and return probability of affording the apratament 
     """
     num_deps_all = int(len(df[(df['size']>=min_size) & (df['size']<=max_size)]))
     df_all = df[(df['size']>=min_size) & (df['size']<=max_size)]
@@ -158,7 +158,7 @@ def pct_change_metric (area_code , num_pages= 50, metric = 'pris_per_m2'):
         
     ans = round((comp['3m'] - comp['12m']) / comp['12m'] *100, 0 )
     bol = 'increased' if  ans > 0 else 'decreased'
-    
-    print( f'The {metric} has {bol} by {ans}%')
-    print(comp)
+    return str(ans)
+#     print( f'The {metric} has {bol} by {ans}%')
+#     print(comp)
 

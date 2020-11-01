@@ -126,7 +126,6 @@ def scraper2(current_url, relevant_only = 'yes' , sold_age = '6m' , loan_limit =
                   'vällingby_code' : 473464, 
                   'söder_code' :898472, 
                   'bromma': 898740
-                 
                  }
 
     area = df['city-kommun'][0] # get the area

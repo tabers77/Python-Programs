@@ -17,7 +17,7 @@
 
      <!-- Main Input For Receiving Query to our ML -->
     <!--<form action="{{ url_for('predict')}}"method="post">-->
-    <form action="{{ url_for('predict')}}"method="get">
+    <form action="{{url_for('predict')}}"method="get">
       <input type="text" name="area" placeholder="Your area"  required="required" />
         <input type="text" name="keys" placeholder="Extra keys"    />
        <input type="text" name="min_year" placeholder="The min year of the apartament" required="required"  />
@@ -32,6 +32,22 @@
    <br>
    <br>
    {{ predict }}
+     
+   <!-- Main Input For Receiving Query to our ML -->
+    <!--<form action="{{ url_for('predict')}}"method="post">-->
+    <form action="{{url_for('compare_pct')}}"method="get">
+      <input type="number" name="area_code" placeholder="The code of your area"  required="required" />
+      <input type="number" name="num_pages" placeholder="The number of pages to process"    />
+      <input type="text" name="metric" placeholder="The metric you want to compare" required="required"  />
+ 
+    
+      <button type="submit" class="btn btn-primary btn-block btn-large">Compare prices</button>
+    </form>
+
+   <br>
+   <br>
+   {{ compare_pct}}
+
 
  </div>
 </body>
