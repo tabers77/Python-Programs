@@ -144,21 +144,40 @@ def dep_filter(df, min_size=40, max_size= 75 , max_price=None,probas= False):
         return num_deps_all
 
 # Compare the percentage of change in zones 
-def pct_change_metric (area_code , num_pages= 50, metric = 'pris_per_m2'):
+def pct_change_metric(area , num_pages= 50, metric = 'pris_per_m2'):
     """
     Quick comparision of change previous or new data
     """
+    import re
+    
+    area_codes = {'järfälla_code': 17951,
+                  'sollentuna_code' :18027,
+                  'solna_code':18028,
+                  'sundbyberg_code': 18042,
+                  'stockholms_län_code': 18031,
+                  'vällingby_code' : 473464, 
+                  'söder_code' :898472, 
+                  'bromma': 898740
+                  
+                 }
     comp = {}   
     sold_ages = ['12m','6m','3m']
     for sold_age in sold_ages: 
         print(f'Calculating param {sold_age}...')
+        pat = re.compile(r"\b(\w*{}\w*)\b".format(area.lower()))
+        area_code = 0
+        for i in area_codes.keys():
+            if pat.search(i):
+                area_code += area_codes[i]
+            
+        
         df = hemnet_generator(area_code = area_code, num_pages = 50,sold_age=sold_age)
         mean_metric = df[metric].mean() 
         comp[sold_age] =  mean_metric 
         
     ans = round((comp['3m'] - comp['12m']) / comp['12m'] *100, 0 )
     bol = 'increased' if  ans > 0 else 'decreased'
-    return str(ans)
-#     print( f'The {metric} has {bol} by {ans}%')
-#     print(comp)
-
+    #return str(ans)
+    final_ans = f'The {metric} has {bol} by {ans}%'
+    #print(comp)
+    return str(final_ans)
