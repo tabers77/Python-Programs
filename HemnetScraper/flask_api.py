@@ -34,7 +34,6 @@ def predict():
 
     df = scraper2(current_url = current_url_new ,relevant_only = relevant_only ,sold_age = sold_age,loan_limit = int(loan_limit))
 
-    
     return render_template('view.html',tables=[df.to_html(classes ='scraper')],
     titles = ['na', 'Results'])
 
@@ -50,6 +49,8 @@ def compare_pct():
     output = pct_change_metric(area = area, num_pages = num_pages , metric = metric )
 
     return output
+
+
 
 if __name__=='__main__':
     app.run()
