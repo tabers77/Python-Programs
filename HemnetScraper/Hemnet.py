@@ -3,6 +3,7 @@ import pandas as pd
 import requests
 from itertools import chain 
 import numpy as np 
+import re 
 
 def preprocessing (df): 
     #To int: 
@@ -17,13 +18,14 @@ def preprocessing (df):
     df['city-kommun'] = df['område'].apply(lambda i :  i.split()[-1] )# choose an specific character 
     df['type of boende'] = df['område'].apply(lambda i :  i.split()[0] )
     df['area'] = df['område'].apply(lambda row : row.split()[1].strip(','))
+    df['area_g1'] = df['area'].apply(lambda x: re.split('/|,|-' , x)[0] ) # TEST - OBSERVE THAT I NEED TO REDEFINE THE COLUMNS BELOW
     df['size'] = df['size'].apply(lambda x: float(x.split()[0].replace(',', '.')) if len(x) >30 else np.nan)
     df['price_change'] = df['price_change'].apply(lambda x: x.split()[0] if type(x) != float and len(x)!=1 else np.nan)
     df['price_change'] = df['price_change'].apply(lambda x: int(x.strip('-')) if type(x) != float else np.nan)
     df['pris_per_m2'] = round(df['slutpris'] / df['size'],0)
     cols_to_drop = ['område']
     df.drop(cols_to_drop,axis=1,inplace=True)
-    df = df[['gata','city-kommun','type of boende','area', 'slutpris', 'pris_per_m2', 'size', 'price_change']]
+    df = df[['gata','city-kommun','type of boende','area', 'area_g1', 'slutpris', 'pris_per_m2', 'size', 'price_change']]  # TEST 
     return df 
 
 def hemnet_generator(sold_age = '6m',area_code = None,num_pages = 3, keyword = None ,relevant_size = False, min_size=40, max_size=50, max_loan = 2600000): 

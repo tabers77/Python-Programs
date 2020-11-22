@@ -19,6 +19,9 @@ all_pages = True
 pages_size = 5 if all_pages == False else 50 
 
 def url_extractor(area ='sundbyberg',keys = None, min_year = 1980):
+    ""
+    1
+    ""
     print('INITIAL EXTRACTION...')
     chrome_browser = webdriver.Chrome('/Users/Tabe/Desktop/pythonprojects/automation/chromedriver')
     chrome_browser.get('https://www.hemnet.se/bostader?item_types%5B%5D=bostadsratt')
@@ -87,9 +90,12 @@ def url_extractor(area ='sundbyberg',keys = None, min_year = 1980):
 ######
 # 2 Initial scrape
 ######
-def scraper2(current_url, relevant_only = 'yes' , sold_age = '6m' , loan_limit = 2985000):
 
-    print('STEP 1: SCRAPING...')
+def scraper2(current_url, relevant_only = 'yes' , sold_age = '6m' , loan_limit = 2985000):
+    """
+    Scrape results 
+    """
+    print('STEP 1: SCRAPING - BASELINE...')
     res = requests.get(current_url)
     soup = BeautifulSoup(res.content,'html.parser')
     street  =  [i.text for i in soup.find_all('h2', class_ ="listing-card__street-address qa-listing-title" )]
@@ -109,15 +115,18 @@ def scraper2(current_url, relevant_only = 'yes' , sold_age = '6m' , loan_limit =
     df.drop('prices', axis = 1 ,inplace = True )
     
     print('STEP 2: GENERATING NEW FEATURES...')
+    
     df['ap_size'] = df['ap_size'].apply(lambda x: float(x.split()[0] if ',' not in x else float(x.split()[0].replace(',', '.'))) )
     df['start_price'] = df.start_price.apply(lambda col: int(''.join([i for i in col if i.isnumeric()] )))
     df['number_of_rooms'] = df.number_of_rooms.apply(lambda col: int(''.join([i for i in col if i.isnumeric()] )))
     df['city-kommun'] = df.location.apply(lambda x: str(x.split()[-1:] )[1:-1].strip("''") )
     df['area'] = df.location.apply(lambda x: x.split(',')[0].strip('\n '))
+    df['area_fixed'] = df['area'].apply(lambda x: x.split(' ')[0] ) # here I only take the first character
     df['street'] = df['street'].apply(lambda x: x.strip('\n ') )
-    df.drop('location', axis= 1 , inplace=True )
+    df.drop('location', axis = 1 , inplace = True )
     
     print('STEP 3: OBTAINING HISTORICAL DATA TO CALCULATE PREDICTED PRICE...')
+    
     area_codes = {'järfälla_code': 17951,
                   'sollentuna_code' :18027,
                   'solna_code':18028,
@@ -128,28 +137,44 @@ def scraper2(current_url, relevant_only = 'yes' , sold_age = '6m' , loan_limit =
                   'bromma': 898740
                  }
 
-    area = df['city-kommun'][0] # get the area
-    pat = re.compile(r"\b(\w*{}\w*)\b".format(area.lower()))
+    area_inp = df['city-kommun'][0] # get the area
+    pat = re.compile(r"\b(\w*{}\w*)\b".format(area_inp.lower()))
 
     area_code = 0
     for i in area_codes.keys(): 
         if pat.search(i):
             area_code+= area_codes[i]
-    
+    # Observe that if we choose a short span for sold_age we could still see outliers for the price change calculation
     history = hemnet_generator(sold_age = sold_age, area_code = area_code  ,num_pages = pages_size, relevant_size= True)
-    
-    print('STEP 4: GENERATING LAST FEATURES...')
-    mean_price_change = history.price_change.mean()
-    mean_price_per_m2 = history.pris_per_m2.mean()
+     
+    # 1 Define dict 
+    by_area = history.groupby('area_g1').price_change.mean().reset_index() 
+    d = pd.Series (data = by_area.price_change.values , index = by_area.area_g1 ).to_dict()
 
-    df['predicted_price'] = df.start_price +  (df.start_price  * (mean_price_change/100) )
+    # 2 fill nan values
+    mean_val = round(by_area.price_change.mean())
+    pct_change_dict = {k: mean_val if np.isnan(v) else v for k,v in d.items()}
+
+    # 3 match the area 
+    df['pct_change'] = df['area_fixed'].map(pct_change_dict)
+      
+    print('STEP 4: GENERATING LAST FEATURES...')
+    
+    #mean_price_change = history.price_change.mean() # 
+    mean_price_per_m2 = history.pris_per_m2.mean()
+    
+    df['predicted_price'] = df.start_price +  (df.start_price  * (df['pct_change']/100) )
+
+    #####
+    #TESTING FROM THIS PART
+    #####
+       
     df['price_per_m2'] = df.start_price /  df.ap_size
     df['label'] = df.predicted_price.apply(lambda x: 'possible' if x <= loan_limit else 'less possible')
     df['expected_price'] = df.ap_size * mean_price_per_m2
 
-    
     # re order cols  
-    df = df[['city-kommun','area','street','label','ap_size','number_of_rooms','start_price','predicted_price','expected_price','price_per_m2','links']]
+    df = df[['city-kommun','area','area_fixed','pct_change','street','label','ap_size','number_of_rooms','start_price','predicted_price','expected_price','price_per_m2','links']]
     
     if relevant_only == 'yes' : 
         print('DONE')
