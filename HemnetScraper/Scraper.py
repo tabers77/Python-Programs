@@ -8,6 +8,9 @@ from itertools import chain
 import numpy as np 
 import re  
 from Hemnet import preprocessing,hemnet_generator, dep_filter, pct_change_metric
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import NoSuchElementException
 
 #############
 # Standard Paramters 
@@ -19,13 +22,17 @@ all_pages = True
 pages_size = 5 if all_pages == False else 50 
 
 def url_extractor(area ='sundbyberg',keys = None, min_year = 1980):
-    ""
-    1
-    ""
+    """
+    
+    """
     print('INITIAL EXTRACTION...')
-    chrome_browser = webdriver.Chrome('/Users/Tabe/Desktop/pythonprojects/automation/chromedriver')
+    chromeOptions = Options() 
+    #chromeOptions.headless = True
+    chromeOptions.add_argument('--headless')
+    chromeOptions.add_argument('window-size=1920x1080')
+    chrome_browser = webdriver.Chrome('/Users/Tabe/Desktop/pythonprojects/automation/chromedriver' , options=chromeOptions)
     chrome_browser.get('https://www.hemnet.se/bostader?item_types%5B%5D=bostadsratt')
-    chrome_browser.maximize_window() 
+    
     try:
         cookie_button = chrome_browser.find_element_by_xpath('/html/body/div[9]/div/div/div[2]/div/button')
         cookie_button.click()
@@ -33,13 +40,11 @@ def url_extractor(area ='sundbyberg',keys = None, min_year = 1980):
     except NoSuchElementException: 
         cookie_button = chrome_browser.find_element_by_xpath('/html/body/div[10]/div/div/div[2]/div/button')
         cookie_button.click()
-    #/html/body/div[8]/div/div/form/div[1]/div[2]/label[3]/span[2]
 
     try:
     # Area 
         box = chrome_browser.find_element_by_xpath('//*[@id="area-search-input-box"]')
         box.clear()
-        time.sleep(2)
         box.send_keys(area)
         time.sleep(2)
         dropdown = chrome_browser.find_element_by_xpath('//*[@id="search-location-dropdowns"]/div/div[2]/div[1]/ul/li[1]')
@@ -47,13 +52,13 @@ def url_extractor(area ='sundbyberg',keys = None, min_year = 1980):
         time.sleep(2)
     # Bo area
         min_area = chrome_browser.find_element_by_xpath('//*[@id="search_living_area_min"]/option[6]')
-        max_area =  chrome_browser.find_element_by_xpath('//*[@id="search_living_area_max"]/option[11]') 
+        #max_area =  chrome_browser.find_element_by_xpath('//*[@id="search_living_area_max"]/option[11]') 
 
         time.sleep(2)
         min_area.click() # dropdown 
         time.sleep(2)
-        max_area.click() # dropdown 
-        time.sleep(2)
+        #max_area.click() # dropdown 
+        #time.sleep(2)
     
     # Search price max : 2650 000
 
@@ -85,13 +90,46 @@ def url_extractor(area ='sundbyberg',keys = None, min_year = 1980):
     
     except ElementClickInterceptedException as err: 
         print(f'You got this error{err}')
+        
 
+def calculate_time(start = 'vasavägen 89'  , dest = 'mariatorget' ): 
+    print(f'CALCULATING FOR {start}...')
+    # Headless is not working here and it is slowing down the application
+    #chromeOptions = Options()# test 
+    #chromeOptions.headless = True# test 
+    #chromeOptions.add_argument('--headless')# test 
+    #chromeOptions.add_argument('window-size=1920x1080')# test 
+    chrome_browser = webdriver.Chrome('/Users/Tabe/Desktop/pythonprojects/automation/chromedriver')
+    chrome_browser.get('https://www.google.com/maps/dir/')
+
+    time.sleep(5)
+    # 1.1 cookie 
+    chrome_browser.switch_to.frame(chrome_browser.find_element_by_xpath('//*[@id="consent-bump"]/div/div[1]/iframe') )
+    element = chrome_browser.find_element_by_id('introAgreeButton')
+    element.click()
+
+    # 2 write start point and destination 
+    start_point = chrome_browser.find_element_by_xpath('//*[@id="sb_ifc50"]/input')
+    start_point.clear()
+    start_point.send_keys(start)
+
+    destination = chrome_browser.find_element_by_xpath('//*[@id="sb_ifc51"]/input')
+    destination.clear()
+    destination.send_keys(dest)
+    
+    # 3 click on transit 
+    transit = chrome_browser.find_element_by_xpath('//*[@id="omnibox-directions"]/div/div[2]/div/div/div[1]/div[3]/button/img')
+    transit.click() 
+    time.sleep(5)
+  
+    output = chrome_browser.find_element_by_xpath( '//*[@id="section-directions-trip-0"]/div[1]/div[2]/div[1]/div' ).text
+    return  output
 
 ######
 # 2 Initial scrape
 ######
 
-def scraper2(current_url, relevant_only = 'yes' , sold_age = '6m' , loan_limit = 2985000):
+def scraper2(current_url, relevant_only = 'yes' , sold_age = '6m' , loan_limit = 2985000 , dest_street = 'mariatorget'  ):
     """
     Scrape results 
     """
@@ -123,10 +161,13 @@ def scraper2(current_url, relevant_only = 'yes' , sold_age = '6m' , loan_limit =
     df['area'] = df.location.apply(lambda x: x.split(',')[0].strip('\n '))
     df['area_fixed'] = df['area'].apply(lambda x: x.split(' ')[0] ) # here I only take the first character
     df['street'] = df['street'].apply(lambda x: x.strip('\n ') )
+    #df['street'] = df['street'].apply(lambda x: x.split(',')[0])
+    df['street'] = df['street'].apply(lambda x: re.split('/|,|-' , x)[0] ) 
     df.drop('location', axis = 1 , inplace = True )
-    
+
     print('STEP 3: OBTAINING HISTORICAL DATA TO CALCULATE PREDICTED PRICE...')
-    
+ 
+
     area_codes = {'järfälla_code': 17951,
                   'sollentuna_code' :18027,
                   'solna_code':18028,
@@ -165,24 +206,24 @@ def scraper2(current_url, relevant_only = 'yes' , sold_age = '6m' , loan_limit =
     
     df['predicted_price'] = df.start_price +  (df.start_price  * (df['pct_change']/100) )
 
-    #####
-    #TESTING FROM THIS PART
-    #####
        
     df['price_per_m2'] = df.start_price /  df.ap_size
     df['label'] = df.predicted_price.apply(lambda x: 'possible' if x <= loan_limit else 'less possible')
     df['expected_price'] = df.ap_size * mean_price_per_m2
 
     # re order cols  
-    df = df[['city-kommun','area','area_fixed','pct_change','street','label','ap_size','number_of_rooms','start_price','predicted_price','expected_price','price_per_m2','links']]
+    df = df[['city-kommun','area','area_fixed','pct_change','street', 'label','ap_size','number_of_rooms','start_price','predicted_price','expected_price','price_per_m2','links']]
     
     if relevant_only == 'yes' : 
-        print('DONE')
+       
         df_new = df[df['label']=='possible'].sort_values('predicted_price') 
+        ##### TEST 
+        print('STEP 2.1: CALCULATING DISTANCES')
+        df_new['distance_to_work'] =  df_new['street'].apply(lambda street:  calculate_time (start = street , dest = dest_street) )
+        ##### TEST    
         return df_new
     elif relevant_only == 'no' : 
         print('DONE')
         return df.sort_values('predicted_price') 
     else:
         raise KeyError 
-            

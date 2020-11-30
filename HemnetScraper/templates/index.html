@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html >
+<!--From https://codepen.io/frytyler/pen/EGdtg-->
 <head>
   <meta charset="UTF-8">
-  <title>HemnetScraper version 1.0</title>
+  <title>ML API</title>
   <link href='https://fonts.googleapis.com/css?family=Pacifico' rel='stylesheet' type='text/css'>
 <link href='https://fonts.googleapis.com/css?family=Arimo' rel='stylesheet' type='text/css'>
 <link href='https://fonts.googleapis.com/css?family=Hind:300' rel='stylesheet' type='text/css'>
@@ -11,10 +12,9 @@
   
 </head>
 
-<body style="background: #000;"> <!-- The color of the background -->
+<body>
  <div class="login">
-  <h1>Hemnet Scraper</h1>
-  <h2>Find relevant apartaments</h2>
+	<h1>Hemnet Scraper</h1>
 
      <!-- Main Input For Receiving Query to our ML -->
     <!--<form action="{{ url_for('predict')}}"method="post">-->
@@ -25,7 +25,9 @@
 
       <input type = "text" name="relevant_only" placeholder="Enter yes or no for relevant only" required="required"  />
       <input type="text" name="sold_age" placeholder="scraping size to calculate predicted price" required="required"  />
-      <input type="number" name="loan_limit" placeholder= "The limit of your loan" min="1" max="5000000" required="required"  />  
+      <input type="number" name="loan_limit" placeholder= "The limit of your loan" min="1" max="5000000" required="required"  /> 
+      <input type="text" name="dest_street" placeholder= "Your final adress" required="required"  />  
+
     
       <button type="submit" class="btn btn-primary btn-block btn-large">Find apartaments</button>
     </form>
@@ -34,22 +36,6 @@
    <br>
    {{ predict }}
    
-    <h2>Compare the percentage of change</h2>
-   <!-- Main Input For Receiving Query to our ML -->
-    <!--<form action="{{ url_for('predict')}}"method="post">-->
-    <form action="{{url_for('compare_pct')}}"method="get">
-      <input type="text" name="area" placeholder="Your area"  required="required" />
-      <input type="number" name="num_pages" placeholder="The number of pages to process"    />
-      <input type="text" name="metric" placeholder="The metric you want to compare" required="required"  />
- 
-    
-      <button type="submit" class="btn btn-primary btn-block btn-large">Compare prices</button>
-    </form>
-
-   <br>
-   <br>
-   {{ compare_pct}}
-
 
  </div>
 </body>
